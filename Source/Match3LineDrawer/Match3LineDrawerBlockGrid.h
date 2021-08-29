@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Match3LineDrawerBlock.h"
+#include "RestartButton.h"
 #include "Match3LineDrawerBlockGrid.generated.h"
 
 /** Class used to spawn blocks and manage score */
@@ -21,15 +22,25 @@ class AMatch3LineDrawerBlockGrid : public AActor
 	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UTextRenderComponent* ScoreText;
 
+	/** Text component for the moves counter */
+	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UTextRenderComponent* MovesText;
+
 	/** Index of last selected block */
 	int32 LastSelectedBlockIndex = -1;
+
+	ARestartButton* RestartBlock = nullptr;
 
 public:
 	AMatch3LineDrawerBlockGrid();
 
 	int32 Score = 0;
 	
-	int32 MovesCounter = 30;
+	UPROPERTY(Category = Grid, EditAnywhere, BlueprintReadOnly)
+	int32 DefaultMovesCounter = 30;
+	
+	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly)
+	int32 MovesCounter = DefaultMovesCounter;
 	
 	/** Number of currently selected block tiles */
 	int32 NumberOfSelectedTiles = 0;
@@ -57,6 +68,9 @@ public:
 	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly)
 	bool SelectionEnabled = false;
 
+	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly)
+	FVector RestartBlockLocation = FVector(-500.0f, 1000.0f, 0.0f);
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -78,10 +92,20 @@ public:
 
 	void AddScore(int32 Amount);
 
+	void DecreaseMovesCounter();
+
 	/** Returns DummyRoot subobject **/
 	FORCEINLINE class USceneComponent* GetDummyRoot() const { return DummyRoot; }
 	/** Returns ScoreText subobject **/
 	FORCEINLINE class UTextRenderComponent* GetScoreText() const { return ScoreText; }
+
+	/** Updates ScoreText from score**/
+	void UpdateScoreText();
+	
+	/** Updates MovesText from move counter**/
+	void UpdateMovesCounterText();
+
+	void OnDecreaseMovesCounter();
 
 	/** Calculates grid coordinates (row, column) from index **/
 	FIntPoint IndexToGridCoordinate(int32 index) const;
@@ -119,6 +143,8 @@ public:
 	void SwapSelectedTiles();
 
 	void HideBlock();
+
+	void RestartGame();
 
 	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly)
 	TMap<int32, AMatch3LineDrawerBlock*> Tiles;

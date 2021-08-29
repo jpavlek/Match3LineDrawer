@@ -16,15 +16,19 @@ AMatch3LineDrawerBlockGrid::AMatch3LineDrawerBlockGrid()
 
 	// Create static mesh component
 	ScoreText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("ScoreText0"));
-	ScoreText->SetRelativeLocation(FVector(600.f, -200.f, 0.f));
+	ScoreText->SetRelativeLocation(FVector(-610.f, 1000.f, 0.f));
 	ScoreText->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
-	ScoreText->SetText(FText::Format(LOCTEXT("ScoreFmt", "Score: {0}"), FText::AsNumber(0)));
+	ScoreText->SetWorldScale3D(FVector(3.f, 3.f, 3.f));
+	UpdateScoreText();
 	ScoreText->SetupAttachment(DummyRoot);
 }
 
 void AMatch3LineDrawerBlockGrid::BeginPlay()
 {
 	Super::BeginPlay();
+
+	MovesCounter = DefaultMovesCounter;
+	UpdateMovesCounterText();
 
 	// Number of blocks
 	const int32 NumBlocks = SizeHorizontal * SizeVertical;
@@ -36,16 +40,26 @@ void AMatch3LineDrawerBlockGrid::BeginPlay()
 
 		// Spawn a block
 		AMatch3LineDrawerBlock* BlockToAdd = GetWorld()->SpawnActor<AMatch3LineDrawerBlock>(BlockLocation, FRotator(0, 0, 0));
-		BlockToAdd->SelectRandomColor();
-		BlockToAdd->UpdateMaterial();
-		BlockToAdd->SetIndex(BlockIndex);
 
-		// Tell the block about its owner
 		if (BlockToAdd != nullptr)
 		{
+			BlockToAdd->SelectRandomColor();
+			BlockToAdd->UpdateMaterial();
+			BlockToAdd->SetIndex(BlockIndex);
+			BlockToAdd->SetIndexRelativeLocation(FVector(-15.0f, -45.f, 50.f));
 			BlockToAdd->OwningGrid = this;
+			Tiles.Add(BlockIndex, BlockToAdd);
 		}
-		Tiles.Add(BlockIndex, BlockToAdd);
+	}
+
+	RestartBlock = GetWorld()->SpawnActor<ARestartButton>(RestartBlockLocation, FRotator(0, 0, 0));
+
+	if (RestartBlock != nullptr)
+	{
+		RestartBlock->SetColor(ETileColor::RED);
+		RestartBlock->UpdateMaterial();
+		RestartBlock->OwningGrid = this;
+		RestartBlock->UpdateIndexText();
 	}
 }
 
@@ -67,8 +81,9 @@ AMatch3LineDrawerBlock* AMatch3LineDrawerBlockGrid::GetLastSelectedBlock()
 void AMatch3LineDrawerBlockGrid::EvaluateTilesSelection()
 {
 	SelectionEnabled = false;
-	if (NumberOfSelectedTiles >= 3)
+	if (NumberOfSelectedTiles >= 3 && MovesCounter > 0)
 	{
+		DecreaseMovesCounter();
 		AddScore();
 
 		// Hide selected tiles.
@@ -107,8 +122,31 @@ void AMatch3LineDrawerBlockGrid::AddScore(int32 Amount)
 {
 	Score += Amount;
 
-	// Update text
+	UpdateScoreText();
+}
+
+void AMatch3LineDrawerBlockGrid::DecreaseMovesCounter()
+{
+	// Increment score
+	MovesCounter--;
+
+	UpdateMovesCounterText();
+
+	OnDecreaseMovesCounter();
+}
+
+void AMatch3LineDrawerBlockGrid::UpdateScoreText()
+{
 	ScoreText->SetText(FText::Format(LOCTEXT("ScoreFmt", "Score: {0}"), FText::AsNumber(Score)));
+}
+
+void AMatch3LineDrawerBlockGrid::UpdateMovesCounterText()
+{
+	MovesText->SetText(FText::Format(LOCTEXT("MovesFmt", "Moves: {0}"), FText::AsNumber(MovesCounter)));
+}
+
+void AMatch3LineDrawerBlockGrid::OnDecreaseMovesCounter()
+{
 }
 
 FIntPoint AMatch3LineDrawerBlockGrid::IndexToGridCoordinate(int32 index) const
@@ -299,6 +337,37 @@ void AMatch3LineDrawerBlockGrid::SwapSelectedTiles()
 		}
 
 	} while (swapped);
+}
+
+void AMatch3LineDrawerBlockGrid::HideBlock()
+{
+	SetActorHiddenInGame(true);
+}
+
+void AMatch3LineDrawerBlockGrid::RestartGame()
+{
+	Score = 0;
+	MovesCounter = DefaultMovesCounter;
+
+	DeselectAllTiles();
+	NumberOfSelectedTiles = 0;
+
+	// Number of blocks
+	const int32 NumBlocks = SizeHorizontal * SizeVertical;
+
+	// Loop to spawn each block
+	for (int32 BlockIndex = 0; BlockIndex < NumBlocks; BlockIndex++)
+	{
+		AMatch3LineDrawerBlock* Block = GetTile(BlockIndex);
+		if (Block != nullptr)
+		{
+			Block->SelectRandomColor();
+			Block->UpdateMaterial();
+		}
+	}
+
+	UpdateScoreText();
+	UpdateMovesCounterText();
 }
 
 #undef LOCTEXT_NAMESPACE

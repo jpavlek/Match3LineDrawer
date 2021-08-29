@@ -2,25 +2,32 @@
 
 #include "Match3LineDrawerBlock.h"
 #include "Match3LineDrawerBlockGrid.h"
+#include "Match3LineDrawerPlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstance.h"
 #include "Math/UnrealMathUtility.h"
+#include "DA_BlockMeshHex.h"
+#include "GameFramework/PlayerInput.h"
+
+#define LOCTEXT_NAMESPACE "PuzzleBlock"
 
 AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 {
-	//TODO: Use Data Assets and Asset Manager instead of hardcoded materials.
+	//TODO: Expose materials to Blueprints and use Data Assets and Asset Manager instead of hardcoded materials.
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
 		ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
 		ConstructorHelpers::FObjectFinderOptional<UMaterial> BaseMaterial;
-		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> BlueMaterial;
-		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> OrangeMaterial;
 		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> RedMaterial;
 		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> GreenMaterial;
+		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> BlueMaterial;
+		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> OrangeMaterial;
 		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> PurpleMaterial;
+		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> WhiteMaterial;
 
 		FConstructorStatics()
 			: PlaneMesh(TEXT("/Game/Puzzle/Meshes/SM_PuzzleHexHorizontal.SM_PuzzleHexHorizontal"))
@@ -30,6 +37,7 @@ AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 			, RedMaterial(TEXT("/Game/Puzzle/Meshes/RedMaterial.RedMaterial"))
 			, GreenMaterial(TEXT("/Game/Puzzle/Meshes/GreenMaterial.GreenMaterial"))
 			, PurpleMaterial(TEXT("/Game/Puzzle/Meshes/PurpleMaterial.PurpleMaterial"))
+			, WhiteMaterial(TEXT("/Game/Puzzle/Materials/WhiteMaterial.WhiteMaterial"))
 		{
 		}
 	};
@@ -46,41 +54,66 @@ AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 	BlockMesh->SetRelativeLocation(FVector(0.f, 0.f, 25.f));
 	BlockMesh->SetMaterial(0, ConstructorStatics.BlueMaterial.Get());
 	BlockMesh->SetupAttachment(DummyRoot);
-	BlockMesh->OnClicked.AddDynamic(this, &AMatch3LineDrawerBlock::BlockClicked);
-	BlockMesh->OnInputTouchBegin.AddDynamic(this, &AMatch3LineDrawerBlock::OnFingerPressedBlock);
 
-	// Save a pointer to the orange material
+	//Bind mouse input events handlers
+	BlockMesh->OnClicked.AddDynamic(this, &AMatch3LineDrawerBlock::BlockClicked);
+	BlockMesh->OnBeginCursorOver.AddDynamic(this, &AMatch3LineDrawerBlock::OverBlockEnter);
+	BlockMesh->OnReleased.AddDynamic(this, &AMatch3LineDrawerBlock::BlockReleased);
+
+	BlockMesh->OnInputTouchBegin.AddDynamic(this, &AMatch3LineDrawerBlock::OnFingerPressedBlock);
+	BlockMesh->OnInputTouchEnter.AddDynamic(this, &AMatch3LineDrawerBlock::OnFingerEnterBlock);
+	BlockMesh->OnInputTouchEnd.AddDynamic(this, &AMatch3LineDrawerBlock::OnFingerReleasedBlock);
+
+	// Save pointers to the colored materials
 	BaseMaterial = ConstructorStatics.BaseMaterial.Get();
-	BlueMaterial = ConstructorStatics.BlueMaterial.Get();
-	OrangeMaterial = ConstructorStatics.OrangeMaterial.Get();
 	RedMaterial = ConstructorStatics.RedMaterial.Get();
 	GreenMaterial = ConstructorStatics.GreenMaterial.Get();
+	BlueMaterial = ConstructorStatics.BlueMaterial.Get();
+	OrangeMaterial = ConstructorStatics.OrangeMaterial.Get();
 	PurpleMaterial = ConstructorStatics.PurpleMaterial.Get();
+	WhiteMaterial = ConstructorStatics.WhiteMaterial.Get();
+
+	// Create static mesh component
+	IndexText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("IndexText0"));
+
+	if (blockDataAsset)
+	{
+		FVector relativeTextLocation = blockDataAsset->GetIndexTextRelativeOffset();
+		IndexText->SetRelativeLocation(relativeTextLocation);
+		FVector relativeScale3D = blockDataAsset->GetRelativeScale3D();
+		IndexText->SetRelativeScale3D(relativeScale3D);
+	}
+
+	IndexText->SetRelativeRotation(FRotator(90.f, 0.f, 180.f));
+	IndexText->SetText(FText::Format(LOCTEXT("IndexFmt", "{0}"), FText::AsNumber(0)));
+	IndexText->SetupAttachment(DummyRoot);
 }
 
-UMaterialInstance* AMatch3LineDrawerBlock::SelectRandomMaterial()
+UMaterialInstance* AMatch3LineDrawerBlock::SelectMaterial(const ETileColor& Color)
 {
-	int32 randomIndex = FMath::RandRange(0, 4);
 	UMaterialInstance* materialInstance = nullptr;
-	switch (randomIndex)
+	switch (Color)
 	{
-	case 0:
-		materialInstance = BlueMaterial;
-		break;
-	case 1:
-		materialInstance = OrangeMaterial;
-		break;
-	case 2:
+	case ETileColor::RED:
 		materialInstance = RedMaterial;
 		break;
-	case 3:
+	case ETileColor::GREEN:
 		materialInstance = GreenMaterial;
 		break;
-	case 4:
+	case ETileColor::BLUE:
+		materialInstance = BlueMaterial;
+		break;
+	case ETileColor::ORANGE:
+		materialInstance = OrangeMaterial;
+		break;
+	case ETileColor::PURPLE:
 		materialInstance = PurpleMaterial;
 		break;
+	case ETileColor::WHITE:
+		materialInstance = WhiteMaterial;
+		break;
 	default:
-		materialInstance = BlueMaterial;
+		materialInstance = WhiteMaterial;
 		break;
 	}
 
@@ -89,38 +122,306 @@ UMaterialInstance* AMatch3LineDrawerBlock::SelectRandomMaterial()
 	return materialInstance;
 }
 
+void AMatch3LineDrawerBlock::UpdateMaterial()
+{
+	SelectMaterial(CurrentColor);
+}
+
+ETileColor AMatch3LineDrawerBlock::SelectRandomColor()
+{
+	int32 randomIndex = FMath::RandRange(0, 4);
+	ETileColor color;
+	color = ETileColor::RED;
+	switch (randomIndex)
+	{
+	case 0:
+		color = ETileColor::RED;
+		break;
+	case 1:
+		color = ETileColor::GREEN;
+		break;
+	case 2:
+		color = ETileColor::BLUE;
+		break;
+	case 3:
+		color = ETileColor::ORANGE;
+		break;
+	case 4:
+		color = ETileColor::PURPLE;
+		break;
+	default:
+		color = ETileColor::WHITE;
+		break;
+	}
+
+	CurrentColor = color;
+	return color;
+}
+
 void AMatch3LineDrawerBlock::BlockClicked(UPrimitiveComponent* ClickedComp, FKey ButtonClicked)
 {
-	HandleClicked();
+	OnPointEvent();
+}
+
+void AMatch3LineDrawerBlock::OverBlockEnter(UPrimitiveComponent* ClickedComp)
+{
+	OnOverEnterEvent();
+}
+
+void AMatch3LineDrawerBlock::BlockReleased(UPrimitiveComponent* ClickedComp, FKey ButtonClicked)
+{
+	OnReleasedEvent();
 }
 
 void AMatch3LineDrawerBlock::OnFingerPressedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent)
 {
-	HandleClicked();
+	OnPointEvent();
 }
 
-void AMatch3LineDrawerBlock::HandleClicked()
+void AMatch3LineDrawerBlock::OnFingerEnterBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent)
 {
-	// Check we are not already active
-	if (!bIsActive)
+	OnOverEnterEvent();
+}
+
+void AMatch3LineDrawerBlock::OnFingerReleasedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent)
+{
+	OnReleasedEvent();
+}
+
+void AMatch3LineDrawerBlock::OnPointEvent()
+{
+	if (OwningGrid != nullptr)
 	{
-		bIsActive = true;
+		OwningGrid->SelectionEnabled = true;
+	}
+	HandleSelection();
+}
 
-		// Change material
-		BlockMesh->SetMaterial(0, BaseMaterial);
+void AMatch3LineDrawerBlock::OnOverEnterEvent()
+{
+	if (OwningGrid == nullptr)
+	{
+		return;
+	}
 
-		// Tell the Grid
-		if (OwningGrid != nullptr)
+	if (IsLeftMouseButtonPressed() && OwningGrid->SelectionEnabled)
+	{
+		UE_LOG(LogTemp, Log, TEXT("OverBlockEnter && LeftMouseButtonPressed"));
+		if (IsBlockSelectable())
 		{
-			OwningGrid->AddScore();
+			SelectBlock();
+			UE_LOG(LogTemp, Log, TEXT("Block %d Selected"), Index);
+		}
+		else if (IsReturning())
+		{
+			UE_LOG(LogTemp, Log, TEXT("OverBlockEnter: Returning from %d to %d"), OwningGrid->LastSelectedBlockIndex, Index);
+
+			int32 returningFrom = OwningGrid->LastSelectedBlockIndex;
+			OwningGrid->LastSelectedBlockIndex = OwningGrid->GetTile(returningFrom)->LastSelectedBlockIndex;
+			OwningGrid->GetTile(returningFrom)->DeselectBlock();
+			UE_LOG(LogTemp, Log, TEXT("Block %d Deselected"), Index);
 		}
 	}
-	else
-	{
-		bIsActive = false;
+}
 
-		// Change material
-		BlockMesh->SetMaterial(0, CurrentMaterial);
+void AMatch3LineDrawerBlock::HandleSelection()
+{
+	// Check we are not already active
+	if (IsBlockSelectable())
+	{
+		SelectBlock();
+		UE_LOG(LogTemp, Log, TEXT("Block %d Selected"), Index);
+	}
+	else if (IsBlockSelected())
+	{
+		DeselectBlock();
+		UE_LOG(LogTemp, Log, TEXT("Block %d Deselected"), Index);
+	}
+}
+
+bool AMatch3LineDrawerBlock::IsLeftMouseButtonPressed()
+{
+	if (AMatch3LineDrawerPlayerController* playerController = GetMatch3LineDrawerPlayerController())
+	{
+		UPlayerInput* playerInput = GetWorld()->GetFirstPlayerController()->PlayerInput;
+		if (playerInput->IsPressed(EKeys::LeftMouseButton))
+		{
+			UE_LOG(LogTemp, Log, TEXT("IsPressed: true"));
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("IsPressed: false"));
+			return false;
+		}
+
+		if (playerController->IsInputKeyDown(EKeys::LeftMouseButton))
+		{
+			UE_LOG(LogTemp, Log, TEXT("IsInputKeyDown: true"));
+			return true;
+		}
+	}
+
+	return false;
+
+}
+
+void AMatch3LineDrawerBlock::SaveCurrentIndex()
+{
+	if (OwningGrid != nullptr)
+	{
+
+		LastSelectedBlockIndex = OwningGrid->LastSelectedBlockIndex;
+		OwningGrid->LastSelectedBlockIndex = Index;
+	}
+}
+
+void AMatch3LineDrawerBlock::RestoreLastIndex()
+{
+	if (OwningGrid != nullptr)
+	{
+		OwningGrid->LastSelectedBlockIndex = LastSelectedBlockIndex;
+		LastSelectedBlockIndex = -1;
+	}
+}
+
+bool AMatch3LineDrawerBlock::IsReturning()
+{
+	if (OwningGrid != nullptr)
+	{
+		if (AMatch3LineDrawerBlock* LastSelectedTile = OwningGrid->GetTile(OwningGrid->LastSelectedBlockIndex))
+		{
+			if (LastSelectedTile->LastSelectedBlockIndex == Index)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void AMatch3LineDrawerBlock::SelectBlock()
+{
+	if (IsBlockSelected())
+	{
+		return;
+	}
+
+	bIsActive = true;
+	SaveCurrentIndex();
+
+	// Change material
+	BlockMesh->SetMaterial(0, BaseMaterial);
+
+	// Tell the Grid
+	if (OwningGrid != nullptr)
+	{
+		OwningGrid->NumberOfSelectedTiles++;
+		OwningGrid->SelectedTiles.Add(Index, Index);
+	}
+}
+
+void AMatch3LineDrawerBlock::DeselectBlock()
+{
+	if (!IsBlockSelected())
+	{
+		return;
+	}
+
+	if (OwningGrid != nullptr)
+	{
+		OwningGrid->NumberOfSelectedTiles--;
+		OwningGrid->SelectedTiles.Remove(Index);
+	}
+
+	BlockMesh->SetMaterial(0, CurrentMaterial);
+
+	RestoreLastIndex();
+
+	bIsActive = false;
+}
+
+void AMatch3LineDrawerBlockGrid::HideBlock()
+{
+	SetActorHiddenInGame(true);
+}
+
+bool AMatch3LineDrawerBlock::IsBlockSelectable() const
+{
+	if (bIsActive)
+	{
+		return false;
+	}
+
+	if (!OwningGrid)
+	{
+		return false;
+	}
+
+	const int32 PreviouslySelectedBlockIndex = OwningGrid->LastSelectedBlockIndex;
+	if (PreviouslySelectedBlockIndex != -1)
+	{
+		if (!IsAdjacent(PreviouslySelectedBlockIndex))
+		{
+			return false;
+		}
+
+		if (!IsSameColor(PreviouslySelectedBlockIndex))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool AMatch3LineDrawerBlock::IsBlockSelected() const
+{
+	if (bIsActive)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void AMatch3LineDrawerBlock::OnReleasedEvent()
+{
+	if (OwningGrid == nullptr)
+	{
+		return;
+	}
+	OwningGrid->SelectionEnabled = false;
+
+	UE_LOG(LogTemp, Log, TEXT("HandleReleased"));
+	int32 numberOfSelectedTiles = OwningGrid->GetNumberOfSelectedTiles();
+	AMatch3LineDrawerPlayerController* playerController = GetMatch3LineDrawerPlayerController();
+	bool removeTiles = (numberOfSelectedTiles >= 3);
+	if (removeTiles)
+	{
+		if (playerController)
+		{
+			playerController->EnableOverEvents(false);
+		}
+
+		// Evaluate
+		OwningGrid->AddScore(numberOfSelectedTiles * numberOfSelectedTiles * 10);
+		//hide selected tiles
+		OwningGrid->ShowSelectedTiles(false);
+		OwningGrid->RefreshColors();
+
+		OwningGrid->SwapSelectedTiles();
+
+		OwningGrid->RandomizeSelectedTiles();
+		OwningGrid->ShowSelectedTiles(true);
+	}
+
+	OwningGrid->DeselectAllTiles();
+
+	if (playerController)
+	{
+		playerController->EnableOverEvents(true);
 	}
 }
 
@@ -142,17 +443,99 @@ void AMatch3LineDrawerBlock::Highlight(bool bOn)
 	}
 }
 
-bool AMatch3LineDrawerBlock::IsAdjacent(int32 otherIndex, int32 gridSizeHorizontal, int32 gridSizeVertical)
+bool AMatch3LineDrawerBlock::IsAdjacent(int32 OtherIndex) const
 {
-	if (index == -1)
+	if (Index == -1)
 	{
 		return false;
 	}
 
-	if (otherIndex == -1)
+	if (OtherIndex == -1)
 	{
 		return false;
 	}
+
+	if (OwningGrid == nullptr)
+	{
+		return false;
+	}
+
+	const int32 sizeHorizontal = OwningGrid->SizeHorizontal;
+
+	int32 column = Index % sizeHorizontal;
+	int32 otherColumn = OtherIndex % sizeHorizontal;
+	float row = Index / sizeHorizontal;
+	float otherRow = OtherIndex / sizeHorizontal;
+
+	// Filtering by maximum row and column distance of 1 between the tiles would give us 8 different neighbors as in a rectangular grid.
+	// As we get hexagonal grid by vertically shifting the odd columns by half the tile size, we apply that to the distance filter,
+	// as additional 2 diagonal "neighbors" get separated by the distance of 1.5, which gives us final neighbors size of 6.
+	if (column % 2 == 1)
+	{
+		row += 0.5f;
+	}
+
+	if (otherColumn % 2 == 1)
+	{
+		otherRow += 0.5f;
+	}
+
+	if (FMath::Abs(column - otherColumn) > 1)
+	{
+		return false;
+	}
+
+	if (FMath::Abs(row - otherRow) > 1)
+	{
+		return false;
+	}
+
+	return true;
+
+}
+
+bool AMatch3LineDrawerBlock::IsSameColor(int32 OtherIndex) const
+{
+	if (!OwningGrid)
+	{
+		return false;
+	}
+
+	if (AMatch3LineDrawerBlock* otherTile = OwningGrid->Tiles[OtherIndex])
+	{
+		ETileColor otherColor = otherTile->GetCurrentColor();
+		if (CurrentColor == otherColor)
+		{
+			return true;
+		}
+	}
+
 
 	return false;
+}
+
+void AMatch3LineDrawerBlock::SetIndex(int32 IndexToSet)
+{
+	Index = IndexToSet;
+	UpdateIndexText();
+}
+
+void AMatch3LineDrawerBlock::UpdateIndexText()
+{
+	IndexText->SetText(FText::Format(LOCTEXT("IndexFmt", "{0}"), FText::AsNumber(Index)));
+}
+
+ETileColor AMatch3LineDrawerBlock::GetCurrentColor()
+{
+	return CurrentColor;
+}
+
+AMatch3LineDrawerPlayerController* AMatch3LineDrawerBlock::GetMatch3LineDrawerPlayerController() const
+{
+	AMatch3LineDrawerPlayerController* playerController = nullptr;
+	if (UWorld* world = GetWorld())
+	{
+		playerController = Cast<AMatch3LineDrawerPlayerController>(world->GetFirstPlayerController());
+	}
+	return playerController;
 }

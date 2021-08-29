@@ -28,11 +28,21 @@ public:
 
 	/** Number of blocks along each side of grid */
 	UPROPERTY(Category=Grid, EditAnywhere, BlueprintReadOnly)
-	int32 Size;
+	int32 SizeHorizontal = 7;
+
+	/** Number of blocks along each side of grid */
+	UPROPERTY(Category = Grid, EditAnywhere, BlueprintReadOnly)
+	int32 SizeVertical = 6;
+	
+	UPROPERTY(Category = Grid, EditAnywhere, BlueprintReadOnly)
+	float BlockSpacingHorizontal = 300.0f;
+	
+	UPROPERTY(Category = Grid, EditAnywhere, BlueprintReadOnly)
+	float BlockSpacingVertical = 220.0f;
 
 	/** Spacing of blocks */
 	UPROPERTY(Category=Grid, EditAnywhere, BlueprintReadOnly)
-	float BlockSpacing;
+	FVector GridOffset = FVector(300.0f, 300, 0.0f);
 
 protected:
 	// Begin AActor interface

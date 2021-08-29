@@ -15,14 +15,10 @@ AMatch3LineDrawerBlockGrid::AMatch3LineDrawerBlockGrid()
 
 	// Create static mesh component
 	ScoreText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("ScoreText0"));
-	ScoreText->SetRelativeLocation(FVector(200.f,0.f,0.f));
+	ScoreText->SetRelativeLocation(FVector(600.f, -200.f, 0.f));
 	ScoreText->SetRelativeRotation(FRotator(90.f,0.f,0.f));
 	ScoreText->SetText(FText::Format(LOCTEXT("ScoreFmt", "Score: {0}"), FText::AsNumber(0)));
 	ScoreText->SetupAttachment(DummyRoot);
-
-	// Set defaults
-	Size = 3;
-	BlockSpacing = 300.f;
 }
 
 
@@ -31,24 +27,24 @@ void AMatch3LineDrawerBlockGrid::BeginPlay()
 	Super::BeginPlay();
 
 	// Number of blocks
-	const int32 NumBlocks = Size * Size;
+	const int32 NumBlocks = SizeHorizontal * SizeVertical;
 
 	// Loop to spawn each block
 	for(int32 BlockIndex=0; BlockIndex<NumBlocks; BlockIndex++)
 	{
-		const float XOffset = (BlockIndex/Size) * BlockSpacing; // Divide by dimension
-		const float YOffset = (BlockIndex%Size) * BlockSpacing; // Modulo gives remainder
-
+		const float XOffset = (BlockIndex / SizeHorizontal) * BlockSpacingHorizontal + (BlockIndex % SizeHorizontal % 2) * BlockSpacingHorizontal / 2.0f; // Divide by dimension
+		const float YOffset = (BlockIndex % SizeHorizontal) * BlockSpacingVertical; // Modulo gives remainder
 		// Make position vector, offset from Grid location
-		const FVector BlockLocation = FVector(XOffset, YOffset, 0.f) + GetActorLocation();
+		const FVector BlockLocation = FVector(XOffset, YOffset, 0.f) + GetActorLocation() + GridOffset;
 
 		// Spawn a block
-		AMatch3LineDrawerBlock* NewBlock = GetWorld()->SpawnActor<AMatch3LineDrawerBlock>(BlockLocation, FRotator(0,0,0));
+		AMatch3LineDrawerBlock* BlockToAdd = GetWorld()->SpawnActor<AMatch3LineDrawerBlock>(BlockLocation, FRotator(0, 0, 0));
+		BlockToAdd->SelectRandomMaterial();
 
 		// Tell the block about its owner
-		if (NewBlock != nullptr)
+		if (BlockToAdd != nullptr)
 		{
-			NewBlock->OwningGrid = this;
+			BlockToAdd->OwningGrid = this;
 		}
 	}
 }

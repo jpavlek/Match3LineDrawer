@@ -15,6 +15,3 @@ class AMatch3LineDrawerGameMode : public AGameModeBase
 public:
 	AMatch3LineDrawerGameMode();
 };
-
-
-

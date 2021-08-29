@@ -44,3 +44,5 @@ void ARestartButton::OnFingerReleasedBlock(ETouchIndex::Type FingerIndex, UPrimi
 		OwningGrid->RestartGame();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

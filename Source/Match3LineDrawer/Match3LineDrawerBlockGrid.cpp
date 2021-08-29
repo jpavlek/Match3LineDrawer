@@ -21,6 +21,13 @@ AMatch3LineDrawerBlockGrid::AMatch3LineDrawerBlockGrid()
 	ScoreText->SetWorldScale3D(FVector(3.f, 3.f, 3.f));
 	UpdateScoreText();
 	ScoreText->SetupAttachment(DummyRoot);
+
+	MovesText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("MovesText0"));
+	MovesText->SetRelativeLocation(FVector(-530.f, 1000.f, 0.f));
+	MovesText->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
+	MovesText->SetWorldScale3D(FVector(3.f, 3.f, 3.f));
+	UpdateMovesCounterText();
+	MovesText->SetupAttachment(DummyRoot);
 }
 
 void AMatch3LineDrawerBlockGrid::BeginPlay()
@@ -137,12 +144,18 @@ void AMatch3LineDrawerBlockGrid::DecreaseMovesCounter()
 
 void AMatch3LineDrawerBlockGrid::UpdateScoreText()
 {
-	ScoreText->SetText(FText::Format(LOCTEXT("ScoreFmt", "Score: {0}"), FText::AsNumber(Score)));
+	if (ScoreText)
+	{
+		ScoreText->SetText(FText::Format(LOCTEXT("ScoreFmt", "Score: {0}"), FText::AsNumber(Score)));
+	}
 }
 
 void AMatch3LineDrawerBlockGrid::UpdateMovesCounterText()
 {
-	MovesText->SetText(FText::Format(LOCTEXT("MovesFmt", "Moves: {0}"), FText::AsNumber(MovesCounter)));
+	if (MovesText)
+	{
+		MovesText->SetText(FText::Format(LOCTEXT("MovesFmt", "Moves: {0}"), FText::AsNumber(MovesCounter)));
+	}
 }
 
 void AMatch3LineDrawerBlockGrid::OnDecreaseMovesCounter()

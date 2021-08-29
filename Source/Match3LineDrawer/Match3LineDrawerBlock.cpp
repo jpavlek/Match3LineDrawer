@@ -499,3 +499,5 @@ AMatch3LineDrawerPlayerController* AMatch3LineDrawerBlock::GetMatch3LineDrawerPl
 	}
 	return playerController;
 }
+
+#undef LOCTEXT_NAMESPACE

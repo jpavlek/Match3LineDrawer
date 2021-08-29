@@ -175,5 +175,3 @@ public:
 	FORCEINLINE class UStaticMeshComponent* GetBlockMesh() const { return BlockMesh; }
 };
 
-
-

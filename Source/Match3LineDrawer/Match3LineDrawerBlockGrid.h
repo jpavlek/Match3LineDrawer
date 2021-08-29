@@ -152,6 +152,3 @@ public:
 	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly)
 	TMap<int32, int32> SelectedTiles;
 };
-
-
-

@@ -31,12 +31,12 @@ AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 
 		FConstructorStatics()
 			: PlaneMesh(TEXT("/Game/Puzzle/Meshes/SM_PuzzleHexHorizontal.SM_PuzzleHexHorizontal"))
-			, BaseMaterial(TEXT("/Game/Puzzle/Meshes/BaseMaterial.BaseMaterial"))
-			, BlueMaterial(TEXT("/Game/Puzzle/Meshes/BlueMaterial.BlueMaterial"))
-			, OrangeMaterial(TEXT("/Game/Puzzle/Meshes/OrangeMaterial.OrangeMaterial"))
-			, RedMaterial(TEXT("/Game/Puzzle/Meshes/RedMaterial.RedMaterial"))
-			, GreenMaterial(TEXT("/Game/Puzzle/Meshes/GreenMaterial.GreenMaterial"))
-			, PurpleMaterial(TEXT("/Game/Puzzle/Meshes/PurpleMaterial.PurpleMaterial"))
+			, BaseMaterial(TEXT("/Game/Puzzle/Materials/BaseMaterial.BaseMaterial"))
+			, BlueMaterial(TEXT("/Game/Puzzle/Materials/BlueMaterial.BlueMaterial"))
+			, OrangeMaterial(TEXT("/Game/Puzzle/Materials/OrangeMaterial.OrangeMaterial"))
+			, RedMaterial(TEXT("/Game/Puzzle/Materials/RedMaterial.RedMaterial"))
+			, GreenMaterial(TEXT("/Game/Puzzle/Materials/GreenMaterial.GreenMaterial"))
+			, PurpleMaterial(TEXT("/Game/Puzzle/Materials/PurpleMaterial.PurpleMaterial"))
 			, WhiteMaterial(TEXT("/Game/Puzzle/Materials/WhiteMaterial.WhiteMaterial"))
 		{
 		}

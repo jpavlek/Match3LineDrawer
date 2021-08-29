@@ -21,7 +21,8 @@ public:
 
 protected:
 	void OnResetVR();
-	void TriggerClick();
+	void TriggerPressed();
+	void TriggerReleased();
 	void TraceForBlock(const FVector& Start, const FVector& End, bool bDrawDebugHelpers);
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)

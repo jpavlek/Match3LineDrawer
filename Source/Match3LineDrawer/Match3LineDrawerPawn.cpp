@@ -8,7 +8,7 @@
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 
-AMatch3LineDrawerPawn::AMatch3LineDrawerPawn(const FObjectInitializer& ObjectInitializer) 
+AMatch3LineDrawerPawn::AMatch3LineDrawerPawn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
@@ -44,7 +44,8 @@ void AMatch3LineDrawerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	PlayerInputComponent->BindAction("ResetVR", EInputEvent::IE_Pressed, this, &AMatch3LineDrawerPawn::OnResetVR);
-	PlayerInputComponent->BindAction("TriggerClick", EInputEvent::IE_Pressed, this, &AMatch3LineDrawerPawn::TriggerClick);
+	PlayerInputComponent->BindAction("TriggerClick", EInputEvent::IE_Pressed, this, &AMatch3LineDrawerPawn::TriggerPressed);
+	PlayerInputComponent->BindAction("TriggerClick", EInputEvent::IE_Released, this, &AMatch3LineDrawerPawn::TriggerReleased);
 }
 
 void AMatch3LineDrawerPawn::CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult)
@@ -59,11 +60,19 @@ void AMatch3LineDrawerPawn::OnResetVR()
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
 }
 
-void AMatch3LineDrawerPawn::TriggerClick()
+void AMatch3LineDrawerPawn::TriggerPressed()
 {
 	if (CurrentBlockFocus)
 	{
-		CurrentBlockFocus->HandleClicked();
+		CurrentBlockFocus->OnPointEvent();
+	}
+}
+
+void AMatch3LineDrawerPawn::TriggerReleased()
+{
+	if (CurrentBlockFocus)
+	{
+		CurrentBlockFocus->OnReleasedEvent();
 	}
 }
 

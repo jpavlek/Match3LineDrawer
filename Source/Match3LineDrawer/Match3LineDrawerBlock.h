@@ -35,10 +35,6 @@ class AMatch3LineDrawerBlock : public AActor
 	UPROPERTY(Category = Block, EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UStaticMeshComponent* BlockMeshHex;
 
-	/** Text component for displaying grid index */
-	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UTextRenderComponent* IndexText;
-
 	/** Index in a grid */
 	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	int32 Index = -1;
@@ -49,8 +45,15 @@ class AMatch3LineDrawerBlock : public AActor
 
 	UDA_BlockMeshHex* blockDataAsset = NewObject<UDA_BlockMeshHex>();
 
+protected:
+	/** Text component for displaying grid index */
+	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UTextRenderComponent* IndexText;
+
 public:
 	AMatch3LineDrawerBlock();
+
+	void SetIndexRelativeLocation(const FVector& RelativeLocationToSet);
 
 	int32 GetLastSelectedBlockIndex() const;
 
@@ -58,6 +61,8 @@ public:
 	UMaterialInstance* SelectMaterial(const ETileColor& Color);
 
 	void UpdateMaterial();
+
+	void SetColor(const ETileColor color);
 
 	ETileColor SelectRandomColor();
 
@@ -106,23 +111,23 @@ public:
 
 	/** Handle the block being clicked */
 	UFUNCTION()
-	void BlockClicked(UPrimitiveComponent* ClickedComp, FKey ButtonClicked);
+	virtual void BlockClicked(UPrimitiveComponent* ClickedComp, FKey ButtonClicked);
 
 	UFUNCTION()
-	void OverBlockEnter(UPrimitiveComponent* ClickedComp);
+	virtual void OverBlockEnter(UPrimitiveComponent* ClickedComp);
 
 	UFUNCTION()
-	void BlockReleased(UPrimitiveComponent* ClickedComp, FKey ButtonClicked);
+	virtual void BlockReleased(UPrimitiveComponent* ClickedComp, FKey ButtonClicked);
 
 	/** Handle the block being touched  */
 	UFUNCTION()
-	void OnFingerPressedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent);
+	virtual void OnFingerPressedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent);
 
 	UFUNCTION()
-	void OnFingerEnterBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent);
+	virtual void OnFingerEnterBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent);
 
 	UFUNCTION()
-	void OnFingerReleasedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent);
+	virtual void OnFingerReleasedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent);
 
 	void OnPointEvent();
 
@@ -130,38 +135,28 @@ public:
 
 	void OnReleasedEvent();
 
-	UFUNCTION()
 	void HandleSelection();
 
-	UFUNCTION()
 	bool IsLeftMouseButtonPressed();
 
-	UFUNCTION()
 	void SaveCurrentIndex();
 
-	UFUNCTION()
 	void RestoreLastIndex();
 
 	bool IsReturning();
 
-	UFUNCTION()
 	void SelectBlock();
 
-	UFUNCTION()
 	void DeselectBlock();
 
-	UFUNCTION()
 	bool IsBlockSelectable() const;
 
-	UFUNCTION()
 	bool IsBlockSelected() const;
 
 	void Highlight(bool bOn);
 
-	UFUNCTION()
 	bool IsAdjacent(int32 OtherIndex) const;
 
-	UFUNCTION()
 	bool IsSameColor(int32 OtherIndex) const;
 
 	void SetIndex(int32 index);

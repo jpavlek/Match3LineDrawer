@@ -16,7 +16,6 @@
 
 AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 {
-	//TODO: Expose materials to Blueprints and use Data Assets and Asset Manager instead of hardcoded materials.
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
@@ -85,8 +84,13 @@ AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 	}
 
 	IndexText->SetRelativeRotation(FRotator(90.f, 0.f, 180.f));
-	IndexText->SetText(FText::Format(LOCTEXT("IndexFmt", "{0}"), FText::AsNumber(0)));
+	//IndexText->SetText(FText::Format(LOCTEXT("IndexFmt", "{0}"), FText::AsNumber(0)));
 	IndexText->SetupAttachment(DummyRoot);
+}
+
+void AMatch3LineDrawerBlock::SetIndexRelativeLocation(const FVector& RelativeLocationToSet)
+{
+	IndexText->SetRelativeLocation(RelativeLocationToSet);
 }
 
 UMaterialInstance* AMatch3LineDrawerBlock::SelectMaterial(const ETileColor& Color)
@@ -130,6 +134,11 @@ int32 AMatch3LineDrawerBlock::GetLastSelectedBlockIndex() const
 void AMatch3LineDrawerBlock::UpdateMaterial()
 {
 	SelectMaterial(CurrentColor);
+}
+
+void AMatch3LineDrawerBlock::SetColor(const ETileColor ColorToSet)
+{
+	CurrentColor = ColorToSet;
 }
 
 ETileColor AMatch3LineDrawerBlock::SelectRandomColor()
@@ -325,11 +334,6 @@ void AMatch3LineDrawerBlock::DeselectBlock()
 	bIsActive = false;
 }
 
-void AMatch3LineDrawerBlockGrid::HideBlock()
-{
-	SetActorHiddenInGame(true);
-}
-
 bool AMatch3LineDrawerBlock::IsBlockSelectable() const
 {
 	if (bIsActive)
@@ -474,7 +478,11 @@ void AMatch3LineDrawerBlock::SetIndex(int32 IndexToSet)
 
 void AMatch3LineDrawerBlock::UpdateIndexText()
 {
-	IndexText->SetText(FText::Format(LOCTEXT("IndexFmt", "{0}"), FText::AsNumber(Index)));
+	#if defined(UE_BUILD_DEBUG)
+		IndexText->SetText(FText::Format(LOCTEXT("IndexFmt", "{0}"), FText::AsNumber(Index))); // Debug Output: Show indices
+	#else
+		IndexText->SetText(LOCTEXT("IndexFmt", ""));											 // Otherwise: Hide indices
+	#endif
 }
 
 ETileColor AMatch3LineDrawerBlock::GetCurrentColor()

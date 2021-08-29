@@ -14,6 +14,9 @@ class AMatch3LineDrawerPlayerController : public APlayerController
 
 public:
 	AMatch3LineDrawerPlayerController();
+	void EnableOverEvents(bool ShouldBeActive);
+	void EnablePointEvents(bool ShouldBeActive);
+	void SetupMouseCursor();
 };
 
 

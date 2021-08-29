@@ -24,28 +24,28 @@ class AMatch3LineDrawerBlock : public AActor
 {
 	GENERATED_BODY()
 
-		/** Dummy root component */
-		UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class USceneComponent* DummyRoot;
+	/** Dummy root component */
+	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* DummyRoot;
 
 	/** StaticMesh component for the clickable block */
 	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UStaticMeshComponent* BlockMesh;
+	class UStaticMeshComponent* BlockMesh;
 
 	UPROPERTY(Category = Block, EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UStaticMeshComponent* BlockMeshHex;
+	class UStaticMeshComponent* BlockMeshHex;
 
 	/** Text component for displaying grid index */
 	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UTextRenderComponent* IndexText;
+	class UTextRenderComponent* IndexText;
 
 	/** Index in a grid */
 	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		int32 Index = -1;
+	int32 Index = -1;
 
 	/** Index of the last selected grid tile */
 	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		int32 LastSelectedBlockIndex = -1;
+	int32 LastSelectedBlockIndex = -1;
 
 	UDA_BlockMeshHex* blockDataAsset = NewObject<UDA_BlockMeshHex>();
 

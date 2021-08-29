@@ -52,6 +52,8 @@ class AMatch3LineDrawerBlock : public AActor
 public:
 	AMatch3LineDrawerBlock();
 
+	int32 GetLastSelectedBlockIndex() const;
+
 	UFUNCTION()
 	UMaterialInstance* SelectMaterial(const ETileColor& Color);
 

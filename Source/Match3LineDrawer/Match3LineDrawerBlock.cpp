@@ -122,6 +122,11 @@ UMaterialInstance* AMatch3LineDrawerBlock::SelectMaterial(const ETileColor& Colo
 	return materialInstance;
 }
 
+int32 AMatch3LineDrawerBlock::GetLastSelectedBlockIndex() const
+{
+	return LastSelectedBlockIndex;
+}
+
 void AMatch3LineDrawerBlock::UpdateMaterial()
 {
 	SelectMaterial(CurrentColor);
@@ -190,10 +195,6 @@ void AMatch3LineDrawerBlock::OnFingerReleasedBlock(ETouchIndex::Type FingerIndex
 
 void AMatch3LineDrawerBlock::OnPointEvent()
 {
-	if (OwningGrid != nullptr)
-	{
-		OwningGrid->SelectionEnabled = true;
-	}
 	HandleSelection();
 }
 
@@ -214,28 +215,25 @@ void AMatch3LineDrawerBlock::OnOverEnterEvent()
 		}
 		else if (IsReturning())
 		{
-			UE_LOG(LogTemp, Log, TEXT("OverBlockEnter: Returning from %d to %d"), OwningGrid->LastSelectedBlockIndex, Index);
-
-			int32 returningFrom = OwningGrid->LastSelectedBlockIndex;
-			OwningGrid->LastSelectedBlockIndex = OwningGrid->GetTile(returningFrom)->LastSelectedBlockIndex;
-			OwningGrid->GetTile(returningFrom)->DeselectBlock();
-			UE_LOG(LogTemp, Log, TEXT("Block %d Deselected"), Index);
+			OwningGrid->DeselectBlockOnReturn();
 		}
 	}
 }
 
 void AMatch3LineDrawerBlock::HandleSelection()
 {
-	// Check we are not already active
+	if (OwningGrid != nullptr)
+	{
+		OwningGrid->SelectionEnabled = true;
+	}
+
 	if (IsBlockSelectable())
 	{
 		SelectBlock();
-		UE_LOG(LogTemp, Log, TEXT("Block %d Selected"), Index);
 	}
 	else if (IsBlockSelected())
 	{
 		DeselectBlock();
-		UE_LOG(LogTemp, Log, TEXT("Block %d Deselected"), Index);
 	}
 }
 
@@ -243,21 +241,8 @@ bool AMatch3LineDrawerBlock::IsLeftMouseButtonPressed()
 {
 	if (AMatch3LineDrawerPlayerController* playerController = GetMatch3LineDrawerPlayerController())
 	{
-		UPlayerInput* playerInput = GetWorld()->GetFirstPlayerController()->PlayerInput;
-		if (playerInput->IsPressed(EKeys::LeftMouseButton))
-		{
-			UE_LOG(LogTemp, Log, TEXT("IsPressed: true"));
-			return true;
-		}
-		else
-		{
-			UE_LOG(LogTemp, Log, TEXT("IsPressed: false"));
-			return false;
-		}
-
 		if (playerController->IsInputKeyDown(EKeys::LeftMouseButton))
 		{
-			UE_LOG(LogTemp, Log, TEXT("IsInputKeyDown: true"));
 			return true;
 		}
 	}
@@ -270,9 +255,8 @@ void AMatch3LineDrawerBlock::SaveCurrentIndex()
 {
 	if (OwningGrid != nullptr)
 	{
-
-		LastSelectedBlockIndex = OwningGrid->LastSelectedBlockIndex;
-		OwningGrid->LastSelectedBlockIndex = Index;
+		LastSelectedBlockIndex = OwningGrid->GetLastSelectedBlockIndex();
+		OwningGrid->SetLastSelectedBlockIndex(Index);
 	}
 }
 
@@ -280,21 +264,23 @@ void AMatch3LineDrawerBlock::RestoreLastIndex()
 {
 	if (OwningGrid != nullptr)
 	{
-		OwningGrid->LastSelectedBlockIndex = LastSelectedBlockIndex;
+		OwningGrid->SetLastSelectedBlockIndex(LastSelectedBlockIndex);
 		LastSelectedBlockIndex = -1;
 	}
 }
 
 bool AMatch3LineDrawerBlock::IsReturning()
 {
-	if (OwningGrid != nullptr)
+	if (OwningGrid == nullptr)
 	{
-		if (AMatch3LineDrawerBlock* LastSelectedTile = OwningGrid->GetTile(OwningGrid->LastSelectedBlockIndex))
+		return false;
+	}
+
+	if (AMatch3LineDrawerBlock* LastSelectedTile = OwningGrid->GetLastSelectedBlock())
+	{
+		if (LastSelectedTile->LastSelectedBlockIndex == Index)
 		{
-			if (LastSelectedTile->LastSelectedBlockIndex == Index)
-			{
-				return true;
-			}
+			return true;
 		}
 	}
 
@@ -311,14 +297,12 @@ void AMatch3LineDrawerBlock::SelectBlock()
 	bIsActive = true;
 	SaveCurrentIndex();
 
-	// Change material
+	// Change material to highlighted base material
 	BlockMesh->SetMaterial(0, BaseMaterial);
 
-	// Tell the Grid
 	if (OwningGrid != nullptr)
 	{
-		OwningGrid->NumberOfSelectedTiles++;
-		OwningGrid->SelectedTiles.Add(Index, Index);
+		OwningGrid->AddSelectedTile(Index);
 	}
 }
 
@@ -331,8 +315,7 @@ void AMatch3LineDrawerBlock::DeselectBlock()
 
 	if (OwningGrid != nullptr)
 	{
-		OwningGrid->NumberOfSelectedTiles--;
-		OwningGrid->SelectedTiles.Remove(Index);
+		OwningGrid->RemoveSelectedTile(Index);
 	}
 
 	BlockMesh->SetMaterial(0, CurrentMaterial);
@@ -359,7 +342,7 @@ bool AMatch3LineDrawerBlock::IsBlockSelectable() const
 		return false;
 	}
 
-	const int32 PreviouslySelectedBlockIndex = OwningGrid->LastSelectedBlockIndex;
+	const int32 PreviouslySelectedBlockIndex = OwningGrid->GetLastSelectedBlockIndex();
 	if (PreviouslySelectedBlockIndex != -1)
 	{
 		if (!IsAdjacent(PreviouslySelectedBlockIndex))
@@ -388,40 +371,9 @@ bool AMatch3LineDrawerBlock::IsBlockSelected() const
 
 void AMatch3LineDrawerBlock::OnReleasedEvent()
 {
-	if (OwningGrid == nullptr)
+	if (OwningGrid != nullptr)
 	{
-		return;
-	}
-	OwningGrid->SelectionEnabled = false;
-
-	UE_LOG(LogTemp, Log, TEXT("HandleReleased"));
-	int32 numberOfSelectedTiles = OwningGrid->GetNumberOfSelectedTiles();
-	AMatch3LineDrawerPlayerController* playerController = GetMatch3LineDrawerPlayerController();
-	bool removeTiles = (numberOfSelectedTiles >= 3);
-	if (removeTiles)
-	{
-		if (playerController)
-		{
-			playerController->EnableOverEvents(false);
-		}
-
-		// Evaluate
-		OwningGrid->AddScore(numberOfSelectedTiles * numberOfSelectedTiles * 10);
-		//hide selected tiles
-		OwningGrid->ShowSelectedTiles(false);
-		OwningGrid->RefreshColors();
-
-		OwningGrid->SwapSelectedTiles();
-
-		OwningGrid->RandomizeSelectedTiles();
-		OwningGrid->ShowSelectedTiles(true);
-	}
-
-	OwningGrid->DeselectAllTiles();
-
-	if (playerController)
-	{
-		playerController->EnableOverEvents(true);
+		OwningGrid->EvaluateTilesSelection();
 	}
 }
 
@@ -501,7 +453,7 @@ bool AMatch3LineDrawerBlock::IsSameColor(int32 OtherIndex) const
 		return false;
 	}
 
-	if (AMatch3LineDrawerBlock* otherTile = OwningGrid->Tiles[OtherIndex])
+	if (AMatch3LineDrawerBlock* otherTile = OwningGrid->GetTile(OtherIndex))
 	{
 		ETileColor otherColor = otherTile->GetCurrentColor();
 		if (CurrentColor == otherColor)

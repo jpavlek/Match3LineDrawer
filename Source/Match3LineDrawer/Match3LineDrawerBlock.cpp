@@ -6,9 +6,11 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstance.h"
+#include "Math/UnrealMathUtility.h"
 
 AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 {
+	//TODO: Use Data Assets and Asset Manager instead of hardcoded materials.
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
@@ -16,11 +18,18 @@ AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 		ConstructorHelpers::FObjectFinderOptional<UMaterial> BaseMaterial;
 		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> BlueMaterial;
 		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> OrangeMaterial;
+		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> RedMaterial;
+		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> GreenMaterial;
+		ConstructorHelpers::FObjectFinderOptional<UMaterialInstance> PurpleMaterial;
+
 		FConstructorStatics()
-			: PlaneMesh(TEXT("/Game/Puzzle/Meshes/PuzzleCube.PuzzleCube"))
+			: PlaneMesh(TEXT("/Game/Puzzle/Meshes/SM_PuzzleHexHorizontal.SM_PuzzleHexHorizontal"))
 			, BaseMaterial(TEXT("/Game/Puzzle/Meshes/BaseMaterial.BaseMaterial"))
 			, BlueMaterial(TEXT("/Game/Puzzle/Meshes/BlueMaterial.BlueMaterial"))
 			, OrangeMaterial(TEXT("/Game/Puzzle/Meshes/OrangeMaterial.OrangeMaterial"))
+			, RedMaterial(TEXT("/Game/Puzzle/Meshes/RedMaterial.RedMaterial"))
+			, GreenMaterial(TEXT("/Game/Puzzle/Meshes/GreenMaterial.GreenMaterial"))
+			, PurpleMaterial(TEXT("/Game/Puzzle/Meshes/PurpleMaterial.PurpleMaterial"))
 		{
 		}
 	};
@@ -33,8 +42,8 @@ AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 	// Create static mesh component
 	BlockMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
 	BlockMesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
-	BlockMesh->SetRelativeScale3D(FVector(1.f,1.f,0.25f));
-	BlockMesh->SetRelativeLocation(FVector(0.f,0.f,25.f));
+	BlockMesh->SetRelativeScale3D(FVector(1.f, 1.f, 0.25f));
+	BlockMesh->SetRelativeLocation(FVector(0.f, 0.f, 25.f));
 	BlockMesh->SetMaterial(0, ConstructorStatics.BlueMaterial.Get());
 	BlockMesh->SetupAttachment(DummyRoot);
 	BlockMesh->OnClicked.AddDynamic(this, &AMatch3LineDrawerBlock::BlockClicked);
@@ -44,6 +53,40 @@ AMatch3LineDrawerBlock::AMatch3LineDrawerBlock()
 	BaseMaterial = ConstructorStatics.BaseMaterial.Get();
 	BlueMaterial = ConstructorStatics.BlueMaterial.Get();
 	OrangeMaterial = ConstructorStatics.OrangeMaterial.Get();
+	RedMaterial = ConstructorStatics.RedMaterial.Get();
+	GreenMaterial = ConstructorStatics.GreenMaterial.Get();
+	PurpleMaterial = ConstructorStatics.PurpleMaterial.Get();
+}
+
+UMaterialInstance* AMatch3LineDrawerBlock::SelectRandomMaterial()
+{
+	int32 randomIndex = FMath::RandRange(0, 4);
+	UMaterialInstance* materialInstance = nullptr;
+	switch (randomIndex)
+	{
+	case 0:
+		materialInstance = BlueMaterial;
+		break;
+	case 1:
+		materialInstance = OrangeMaterial;
+		break;
+	case 2:
+		materialInstance = RedMaterial;
+		break;
+	case 3:
+		materialInstance = GreenMaterial;
+		break;
+	case 4:
+		materialInstance = PurpleMaterial;
+		break;
+	default:
+		materialInstance = BlueMaterial;
+		break;
+	}
+
+	BlockMesh->SetMaterial(0, materialInstance);
+	CurrentMaterial = materialInstance;
+	return materialInstance;
 }
 
 void AMatch3LineDrawerBlock::BlockClicked(UPrimitiveComponent* ClickedComp, FKey ButtonClicked)
@@ -65,13 +108,20 @@ void AMatch3LineDrawerBlock::HandleClicked()
 		bIsActive = true;
 
 		// Change material
-		BlockMesh->SetMaterial(0, OrangeMaterial);
+		BlockMesh->SetMaterial(0, BaseMaterial);
 
 		// Tell the Grid
 		if (OwningGrid != nullptr)
 		{
 			OwningGrid->AddScore();
 		}
+	}
+	else
+	{
+		bIsActive = false;
+
+		// Change material
+		BlockMesh->SetMaterial(0, CurrentMaterial);
 	}
 }
 
@@ -89,6 +139,6 @@ void AMatch3LineDrawerBlock::Highlight(bool bOn)
 	}
 	else
 	{
-		BlockMesh->SetMaterial(0, BlueMaterial);
+		BlockMesh->SetMaterial(0, CurrentMaterial);
 	}
 }

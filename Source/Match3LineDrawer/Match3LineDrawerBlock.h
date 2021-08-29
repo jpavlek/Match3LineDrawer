@@ -20,8 +20,17 @@ class AMatch3LineDrawerBlock : public AActor
 	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UStaticMeshComponent* BlockMesh;
 
+	UPROPERTY(Category = Block, EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UStaticMeshComponent* BlockMeshHex;
+	
+	/** Text component for displaying grid index */
+	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UTextRenderComponent* IndexText;
+
 public:
 	AMatch3LineDrawerBlock();
+
+	class UMaterialInstance* SelectRandomMaterial();
 
 	/** Are we currently active? */
 	bool bIsActive;
@@ -32,11 +41,27 @@ public:
 
 	/** Pointer to blue material used on inactive blocks */
 	UPROPERTY()
-	class UMaterialInstance* BlueMaterial;
+	UMaterialInstance* BlueMaterial;
 
 	/** Pointer to orange material used on active blocks */
 	UPROPERTY()
-	class UMaterialInstance* OrangeMaterial;
+	UMaterialInstance* OrangeMaterial;
+
+	/** Pointer to red material used on active blocks */
+	UPROPERTY()
+	UMaterialInstance * RedMaterial;
+	
+	/** Pointer to green material used on active blocks */
+	UPROPERTY()
+	UMaterialInstance * GreenMaterial;
+	
+	/** Pointer to purple material used on active blocks */
+	UPROPERTY()
+	UMaterialInstance * PurpleMaterial;
+	
+	/** Pointer to current material used on active blocks */
+	UPROPERTY()
+	 UMaterialInstance * CurrentMaterial = nullptr;
 
 	/** Grid that owns us */
 	UPROPERTY()

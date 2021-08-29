@@ -21,13 +21,15 @@ class AMatch3LineDrawerBlockGrid : public AActor
 	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UTextRenderComponent* ScoreText;
 
+	/** Index of last selected block */
+	int32 LastSelectedBlockIndex = -1;
+
 public:
 	AMatch3LineDrawerBlockGrid();
 
-	int32 Score;
-
-	/** Index of last selected block */
-	int32 LastSelectedBlockIndex = -1;
+	int32 Score = 0;
+	
+	int32 MovesCounter = 30;
 	
 	/** Number of currently selected block tiles */
 	int32 NumberOfSelectedTiles = 0;
@@ -56,11 +58,20 @@ public:
 	bool SelectionEnabled = false;
 
 protected:
-	// Begin AActor interface
+
 	virtual void BeginPlay() override;
-	// End AActor interface
 
 public:
+
+	int32 GetLastSelectedBlockIndex() const;
+	
+	void SetLastSelectedBlockIndex(int32 IndexToSet);
+	
+	AMatch3LineDrawerBlock * GetLastSelectedBlock();
+	
+	void EvaluateTilesSelection();
+	
+	int32 CalculateScoreIncrease();
 
 	/** Handle the block being clicked */
 	void AddScore();
@@ -89,25 +100,31 @@ public:
 
 	AMatch3LineDrawerBlock* GetTile(int32 Index);
 
+	void DeselectBlockOnReturn();
+
 	void DeselectAllTiles();
 
 	void ShowSelectedTiles(bool ShouldShow = true);
 
 	void RefreshColors();
 
-	void RandomizeSelectedTiles();
+	void RandomizeSelectedTilesColors();
 
 	bool SwapTiles(int32 TileIndex0, int32 TileIndex1);
 
+	void AddSelectedTile(int32 IndexToAdd);
+
+	void RemoveSelectedTile(int32 IndexToRemove);
+
 	void SwapSelectedTiles();
 
-	UPROPERTY(Category = Grid, EditAnywhere, BlueprintReadOnly)
+	void HideBlock();
+
+	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly)
 	TMap<int32, AMatch3LineDrawerBlock*> Tiles;
 
-	UPROPERTY(Category = Grid, EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = Grid, VisibleDefaultsOnly, BlueprintReadOnly)
 	TMap<int32, int32> SelectedTiles;
-
-	void HideBlock();
 };
 
 

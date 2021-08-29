@@ -49,9 +49,58 @@ void AMatch3LineDrawerBlockGrid::BeginPlay()
 	}
 }
 
+int32 AMatch3LineDrawerBlockGrid::GetLastSelectedBlockIndex() const
+{
+	return LastSelectedBlockIndex;
+}
+
+void AMatch3LineDrawerBlockGrid::SetLastSelectedBlockIndex(int32 IndexToSet)
+{
+	LastSelectedBlockIndex = IndexToSet;
+}
+
+AMatch3LineDrawerBlock* AMatch3LineDrawerBlockGrid::GetLastSelectedBlock()
+{
+	return GetTile(LastSelectedBlockIndex);
+}
+
+void AMatch3LineDrawerBlockGrid::EvaluateTilesSelection()
+{
+	SelectionEnabled = false;
+	if (NumberOfSelectedTiles >= 3)
+	{
+		AddScore();
+
+		// Hide selected tiles.
+		ShowSelectedTiles(false);
+
+		// Remove highlight if any, restore original colored materials
+		RefreshColors();
+
+		// Simulate tiles falling by swapping selected tiles with any tiles on top of them
+		SwapSelectedTiles();
+
+		// Reuse selected tiles with randomized colors
+		RandomizeSelectedTilesColors();
+
+		// Show 'selected' tiles on top of the grid.
+		ShowSelectedTiles(true);
+	}
+
+	// Deselect selected tiles in any case
+	DeselectAllTiles();
+}
+
+int32 AMatch3LineDrawerBlockGrid::CalculateScoreIncrease()
+{
+	int32 scoreIncrease = NumberOfSelectedTiles * NumberOfSelectedTiles * 10;
+	return scoreIncrease;
+}
+
 void AMatch3LineDrawerBlockGrid::AddScore()
 {
-	AddScore(1);
+	int32 amount = CalculateScoreIncrease();
+	AddScore(amount);
 }
 
 void AMatch3LineDrawerBlockGrid::AddScore(int32 Amount)
@@ -117,9 +166,15 @@ AMatch3LineDrawerBlock* AMatch3LineDrawerBlockGrid::GetTile(int32 Index)
 	return Tiles[Index];
 }
 
+void AMatch3LineDrawerBlockGrid::DeselectBlockOnReturn()
+{
+	AMatch3LineDrawerBlock* lastSelectedBlock = GetLastSelectedBlock();
+	LastSelectedBlockIndex = lastSelectedBlock->GetLastSelectedBlockIndex();
+	lastSelectedBlock->DeselectBlock();
+}
+
 void AMatch3LineDrawerBlockGrid::DeselectAllTiles()
 {
-	UE_LOG(LogTemp, Log, TEXT("DeselectAllTiles"));
 	TArray<int32> indices;
 	SelectedTiles.GetKeys(indices);
 	for (int32 index : indices)
@@ -161,7 +216,7 @@ void AMatch3LineDrawerBlockGrid::RefreshColors()
 	}
 }
 
-void AMatch3LineDrawerBlockGrid::RandomizeSelectedTiles()
+void AMatch3LineDrawerBlockGrid::RandomizeSelectedTilesColors()
 {
 	TArray<int32> indices;
 	SelectedTiles.GetKeys(indices);
@@ -173,6 +228,18 @@ void AMatch3LineDrawerBlockGrid::RandomizeSelectedTiles()
 			block->UpdateMaterial();
 		}
 	}
+}
+
+void AMatch3LineDrawerBlockGrid::AddSelectedTile(int32 IndexToAdd)
+{
+	NumberOfSelectedTiles++;
+	SelectedTiles.Add(IndexToAdd, IndexToAdd);
+}
+
+void AMatch3LineDrawerBlockGrid::RemoveSelectedTile(int32 IndexToRemove)
+{
+	NumberOfSelectedTiles--;
+	SelectedTiles.Remove(IndexToRemove);
 }
 
 bool AMatch3LineDrawerBlockGrid::SwapTiles(int32 TileIndex0, int32 TileIndex1)

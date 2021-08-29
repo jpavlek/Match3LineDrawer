@@ -94,7 +94,6 @@ void AMatch3LineDrawerBlock::BlockClicked(UPrimitiveComponent* ClickedComp, FKey
 	HandleClicked();
 }
 
-
 void AMatch3LineDrawerBlock::OnFingerPressedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent)
 {
 	HandleClicked();
@@ -141,4 +140,19 @@ void AMatch3LineDrawerBlock::Highlight(bool bOn)
 	{
 		BlockMesh->SetMaterial(0, CurrentMaterial);
 	}
+}
+
+bool AMatch3LineDrawerBlock::IsAdjacent(int32 otherIndex, int32 gridSizeHorizontal, int32 gridSizeVertical)
+{
+	if (index == -1)
+	{
+		return false;
+	}
+
+	if (otherIndex == -1)
+	{
+		return false;
+	}
+
+	return false;
 }

@@ -27,6 +27,8 @@ class AMatch3LineDrawerBlock : public AActor
 	UPROPERTY(Category = Block, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UTextRenderComponent* IndexText;
 
+	int32 index = -1;
+
 public:
 	AMatch3LineDrawerBlock();
 
@@ -78,6 +80,8 @@ public:
 	void HandleClicked();
 
 	void Highlight(bool bOn);
+
+	bool IsAdjacent(int32 otherIndex, int32 gridSizeHorizontal = 7, int32 gridSizeVertical = 6);
 
 public:
 	/** Returns DummyRoot subobject **/
